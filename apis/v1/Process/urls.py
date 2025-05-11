@@ -1,6 +1,6 @@
 from django.urls import path,include
 from . import views
-from .views import create_checkout_session_basic_plan
+from .views import create_checkout_session_basic_plan,stripe_webhook
 urlpatterns = [
     
    path("Process/verify/",views.VerifyUser),
@@ -13,5 +13,6 @@ urlpatterns = [
    path("view/MyProfile/",views.ViewMyProfile),
    path("Process/MakePreview/",views.VideoPreviewGenerator),
     path('create-checkout-session/basic_plan/', create_checkout_session_basic_plan),
+    path('webhooks/stripe/', stripe_webhook),
 
 ]
