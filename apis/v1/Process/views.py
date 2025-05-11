@@ -315,7 +315,7 @@ def create_checkout_session_basic_plan(request):
         )
     return Response({'sessionId': checkout_session.id})
 
-@method_decorator(csrf_exempt, name='dispatch')
+@csrf_exempt
 @api_view(['POST'])  # Accept only POST requests
 @permission_classes([AllowAny])  # Allow unauthenticated access for Stripe
 def stripe_webhook(request):
