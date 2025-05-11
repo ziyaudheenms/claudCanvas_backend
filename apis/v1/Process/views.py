@@ -337,9 +337,9 @@ def stripe_webhook(request):
 
         if user_name:
             try:
-                user = Profile.objects.get(user=user_name)
-                user.credits += 20
-                user.save()
+                profile = Profile.objects.get(user__username=user_name)
+                profile.credits += 20
+                profile.save()
             except Profile.DoesNotExist:
                 pass  # Log this if needed
 
