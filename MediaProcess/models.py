@@ -17,9 +17,22 @@ class Image(models.Model):
     title = models.CharField(max_length=255)
     image_file = models.ImageField(upload_to='images/')
     uploaded_at = models.DateTimeField(auto_now_add=True)
-    processed_image = models.ImageField(upload_to='processed_images/', null=True, blank=True)
+    processed_image = models.CharField(max_length=225)
     process_type = models.CharField(max_length=50, null=True, blank=True)
     
 
     def __str__(self):
         return self.title
+
+
+class Video(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    video_file = models.FileField(upload_to='videos/')
+    title = models.CharField(max_length=255,default="default")
+    transformed_video_file = models.CharField(max_length=255)
+    size = models.PositiveIntegerField(default=0)  # Size in bytes
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    process_type = models.CharField(max_length=50, null=True, blank=True,default="default")
+
+    def __str__(self):
+        return f"{self.user.username} - {self.video_file.name}"
