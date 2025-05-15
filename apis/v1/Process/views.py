@@ -13,8 +13,10 @@ import cloudinary.uploader
 from cloudinary.utils import cloudinary_url
 from cloudinary import CloudinaryImage,CloudinaryVideo
 import stripe
+import os
+import dotenv
 
-stripe.api_key = 'sk_test_51RN9pcQSPfEW4nUdCsKqnqO5twOh52q53d0N6IBbQWgmb1tQVnB2maCq6Zp2oSNMaRHQFiHJJgAcSLiAHZprUnQr008S9DMfh4'
+stripe.api_key = os.getenv('STRIPE_SEQRET_KEY')
 
 cloudinary.config( 
     cloud_name = "dqakrlfun", 
@@ -296,13 +298,24 @@ def GeneRativeReplace(request):
        return Response({"status_code":5000,"message":"Background Removed","data":transformed_image_url})
    
 @api_view(['POST'])
-def create_checkout_session_basic_plan(request):
+def create_checkout_session(request):
     username = request.data['username']
+    Pricetype = request.data['Pricetype']
+    price_id = os.getenv('BASIC_PLAN')
+
+    if Pricetype == 'basic':
+        price_id = os.getenv('BASIC_PLAN')
+    elif Pricetype == 'pro':
+        price_id = os.getenv('PRO_PLAN')
+    else:
+        price_id = os.getenv('ALTRA_PRO_PLAN')
+
+
     checkout_session = stripe.checkout.Session.create(
             line_items=[
                 {
                     # Provide the exact Price ID (for example, price_1234) of the product you want to sell
-                    'price': 'price_1RNYBlQSPfEW4nUdXQE16Sna',
+                    'price': price_id,
                     'quantity': 1,
                 },
             ],
@@ -310,7 +323,8 @@ def create_checkout_session_basic_plan(request):
             success_url='http://localhost:3000/Success',
             cancel_url='http://localhost:3000/Failure',
             metadata={
-                'username': username 
+                'username': username ,
+                'priceType' : Pricetype,
             }
         )
     return Response({'sessionId': checkout_session.id})
@@ -319,7 +333,7 @@ def create_checkout_session_basic_plan(request):
 @api_view(['POST'])  # Accept only POST requests
 @permission_classes([AllowAny])  # Allow unauthenticated access for Stripe
 def stripe_webhook(request):
-    webhook_secret = 'whsec_ec1rIPks2FFzXdTrC3jOt4XLvsgMoapw'  # Replace with your real webhook secret
+    webhook_secret = os.getenv('WEBHOOK_SECRET') # Replace with your real webhook secret
 
     try:
         event = stripe.Webhook.construct_event(
@@ -334,13 +348,60 @@ def stripe_webhook(request):
     if event['type'] == 'checkout.session.completed':
         session = event['data']['object']
         user_name = session.get('metadata', {}).get('username')
+        price_type = session.get('metadata', {}).get('priceType')
 
         if user_name:
             try:
-                profile = Profile.objects.get(user__username=user_name)
-                profile.credits += 20
-                profile.save()
+                if price_type == "basic":
+
+                    profile = Profile.objects.get(user__username=user_name)
+                    profile.credits += 20
+                    profile.save()
+                elif price_type == "pro":
+                    profile = Profile.objects.get(user__username=user_name)
+                    profile.credits += 100
+                    profile.save()
+                else:
+                    profile = Profile.objects.get(user__username=user_name)
+                    profile.credits += 500
+                    profile.save()
             except Profile.DoesNotExist:
                 pass  # Log this if needed
 
     return HttpResponse(status=200)
+
+
+@api_view(['POST'])
+def ReplaveGenerativeBackground(request):
+   Original_image_url = request.data['image']
+   title_of_the_image = request.data['title']
+   prompt_of_image = request.data['prompt']
+   requested_user_username = request.data['username']
+   requested_user = User.objects.get(username = requested_user_username)
+
+   Available_credits = Profile.objects.get(user = requested_user).credits
+   if Available_credits <= 2:
+       return Response({"status_code": 5002, "message": "Insufficient credits"})
+   else:
+
+
+       uploaded_image = cloudinary.uploader.upload(Original_image_url)
+       public_id = uploaded_image['public_id']
+       final_iamge_url = CloudinaryImage(public_id).image(effect=f"gen_background_replace:prompt_&{prompt_of_image}")
+
+       start_pos = final_iamge_url.find('src="') + len('src="')
+       end_pos = final_iamge_url.find('"', start_pos)
+       transformed_image_url = final_iamge_url[start_pos:end_pos]
+       Profile.objects.filter(user = requested_user).update(credits = Available_credits - 2)
+       
+
+
+       Image.objects.create(
+            user = requested_user,
+            title = title_of_the_image,
+            image_file = Original_image_url,
+            processed_image = transformed_image_url, 
+            process_type = "Generative replace of background"
+        )
+       
+       return Response({"status_code":5000,"message":"Background Removed","data":transformed_image_url})
