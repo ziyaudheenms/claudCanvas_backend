@@ -405,3 +405,39 @@ def ReplaveGenerativeBackground(request):
         )
        
        return Response({"status_code":5000,"message":"Background Removed","data":transformed_image_url})
+
+
+
+@api_view(['POST'])
+def ContentAwareCrop(request):
+   Original_image_url = request.data['image']
+   title_of_the_image = request.data['title']
+   requested_user_username = request.data['username']
+   requested_user = User.objects.get(username = requested_user_username)
+
+   Available_credits = Profile.objects.get(user = requested_user).credits
+   if Available_credits <= 2:
+       return Response({"status_code": 5002, "message": "Insufficient credits"})
+   else:
+       Profile.objects.filter(user = requested_user).update(credits = Available_credits - 2)
+
+
+       uploaded_image = cloudinary.uploader.upload(Original_image_url)
+       public_id = uploaded_image['public_id']
+       final_iamge_url = CloudinaryImage(public_id).image(effect="background_removal")
+
+       start_pos = final_iamge_url.find('src="') + len('src="')
+       end_pos = final_iamge_url.find('"', start_pos)
+       transformed_image_url = final_iamge_url[start_pos:end_pos]
+
+
+
+       Image.objects.create(
+            user = requested_user,
+            title = title_of_the_image,
+            image_file = Original_image_url,
+            processed_image = transformed_image_url, 
+            process_type = "Background Removal"
+        )
+       
+       return Response({"status_code":5000,"message":"Background Removed","data":transformed_image_url})

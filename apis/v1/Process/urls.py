@@ -15,5 +15,6 @@ urlpatterns = [
    path("Process/MakePreview/",views.VideoPreviewGenerator),
    path('create-checkout-session/basic_plan/', create_checkout_session),
    path('webhooks/stripe/', stripe_webhook),
+   path('Process/Image/ContentAwareCrop/', views.ContentAwareCrop),
 
 ]
