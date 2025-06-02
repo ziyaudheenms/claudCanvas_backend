@@ -776,20 +776,33 @@ def GenerateImage(request):
 def DeleteImage(request,pk):
     requested_user_username = request.data['username']
     requested_user = User.objects.get(username = requested_user_username)
-    if Image.objects.filter(pk=pk).exists():
-        image_instance = Image.objects.get(pk=pk)
-        image_instance.delete()
-        return Response({"status_code": 5000, "message": "Image deleted successfully"})
+    if Image.objects.filter(user=requested_user).exists():
+        if Image.objects.filter(pk=pk).exists():
+         # Delete the image from Cloudinary
+            image_instance = Image.objects.get(pk=pk)
+            image_instance.delete()
+        
+            return Response({"status_code": 5000, "message": "Image deleted successfully"})
+        else:
+            return Response({"status_code": 5001, "message": "Image not got deleted"})
     else:
-        return Response({"status_code": 5001, "message": "Image not got deleted"})
+         return Response({"status_code": 5001, "message": "User not found"})
     
 @api_view(['POST'])
 def DeleteVideo(request,pk):
-    requested_user_username = request.data['username']
-    requested_user = User.objects.get(username = requested_user_username)
-    if Video.objects.filter(pk=pk).exists():
-        video_instance = Video.objects.get(pk=pk)
-        video_instance.delete()
-        return Response({"status_code": 5000, "message": "Video deleted successfully"})
-    else:
-        return Response({"status_code": 5001, "message": "Video not got deleted"})
+     
+     requested_user_username = request.data['username']
+     requested_user = User.objects.get(username = requested_user_username)
+     if Video.objects.filter(user=requested_user).exists():
+        
+        if Video.objects.filter(pk=pk).exists():
+         # Delete the video from Cloudinary
+            video_instance = Video.objects.get(pk=pk)
+            video_instance.delete()
+
+            return Response({"status_code": 5000, "message": "Video deleted successfully"})
+        else:
+            
+            return Response({"status_code": 5001, "message": "Video not got deleted"})
+     else:
+         return Response({"status_code": 5001, "message": "User not found"})
