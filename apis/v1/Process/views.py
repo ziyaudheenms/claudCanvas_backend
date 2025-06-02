@@ -770,3 +770,26 @@ def GenerateImage(request):
         )
        
         return Response({"status_code":5000,"message":"Generated Image","data":response.data[0].url})
+
+
+@api_view(['POST'])
+def DeleteImage(request,pk):
+    requested_user_username = request.data['username']
+    requested_user = User.objects.get(username = requested_user_username)
+    if Image.objects.filter(pk=pk).exists():
+        image_instance = Image.objects.get(pk=pk)
+        image_instance.delete()
+        return Response({"status_code": 5000, "message": "Image deleted successfully"})
+    else:
+        return Response({"status_code": 5001, "message": "Image not got deleted"})
+    
+@api_view(['POST'])
+def DeleteVideo(request,pk):
+    requested_user_username = request.data['username']
+    requested_user = User.objects.get(username = requested_user_username)
+    if Video.objects.filter(pk=pk).exists():
+        video_instance = Video.objects.get(pk=pk)
+        video_instance.delete()
+        return Response({"status_code": 5000, "message": "Video deleted successfully"})
+    else:
+        return Response({"status_code": 5001, "message": "Video not got deleted"})
