@@ -15,9 +15,8 @@ from cloudinary import CloudinaryImage,CloudinaryVideo
 import stripe
 import os
 import dotenv
-
+from openai import OpenAI
 stripe.api_key = os.getenv('STRIPE_SEQRET_KEY')
-
 cloudinary.config( 
     cloud_name = "dqakrlfun", 
     api_key = "785428453549811", 
@@ -83,6 +82,41 @@ def RemoveBackground(request):
         )
        
        return Response({"status_code":5000,"message":"Background Removed","data":transformed_image_url})
+
+
+@api_view(['POST'])
+def UpscaleImage(request):
+   Original_image_url = request.data['image']
+   title_of_the_image = request.data['title']
+   requested_user_username = request.data['username']
+   requested_user = User.objects.get(username = requested_user_username)
+
+   Available_credits = Profile.objects.get(user = requested_user).credits
+   if Available_credits <= 2:
+       return Response({"status_code": 5002, "message": "Insufficient credits"})
+   else:
+
+
+       uploaded_image = cloudinary.uploader.upload(Original_image_url)
+       public_id = uploaded_image['public_id']
+       final_iamge_url = CloudinaryImage(public_id).image(effect="upscale")
+
+       start_pos = final_iamge_url.find('src="') + len('src="')
+       end_pos = final_iamge_url.find('"', start_pos)
+       transformed_image_url = final_iamge_url[start_pos:end_pos]
+
+       Profile.objects.filter(user = requested_user).update(credits = Available_credits - 2)
+
+
+       Image.objects.create(
+            user = requested_user,
+            title = title_of_the_image,
+            image_file = Original_image_url,
+            processed_image = transformed_image_url, 
+            process_type = "Upscale Image"
+        )
+       
+       return Response({"status_code":5000,"message":"Image Upscaled to perfection","data":transformed_image_url})
 
 
 @api_view(['POST'])
@@ -297,6 +331,44 @@ def GeneRativeReplace(request):
        
        return Response({"status_code":5000,"message":"Background Removed","data":transformed_image_url})
    
+
+   
+
+@api_view(['POST'])
+def GenerativeRemover(request):
+   Original_image_url = request.data['image']
+   title_of_the_image = request.data['title']
+   requested_user_username = request.data['username']
+   Item_to_remove = request.data['itemToRemove']
+   requested_user = User.objects.get(username = requested_user_username)
+
+   Available_credits = Profile.objects.get(user = requested_user).credits
+   if Available_credits <= 2:
+       return Response({"status_code": 5002, "message": "Insufficient credits"})
+   else:
+       
+
+
+       uploaded_image = cloudinary.uploader.upload(Original_image_url)
+       public_id = uploaded_image['public_id']
+       final_iamge_url =CloudinaryImage(public_id).image(effect=f"gen_remove:prompt_{Item_to_remove}")
+
+       start_pos = final_iamge_url.find('src="') + len('src="')
+       end_pos = final_iamge_url.find('"', start_pos)
+       transformed_image_url = final_iamge_url[start_pos:end_pos]
+       Profile.objects.filter(user = requested_user).update(credits = Available_credits - 2)
+
+
+       Image.objects.create(
+            user = requested_user,
+            title = title_of_the_image,
+            image_file = Original_image_url,
+            processed_image = transformed_image_url, 
+            process_type = "Generative Remove"
+        )
+       
+       return Response({"status_code":5000,"message":"Generative Remove","data":transformed_image_url})
+   
 @api_view(['POST'])
 def create_checkout_session(request):
     username = request.data['username']
@@ -441,3 +513,260 @@ def ContentAwareCrop(request):
         )
        
        return Response({"status_code":5000,"message":"Background Removed","data":transformed_image_url})
+   
+
+
+@api_view(['POST'])
+def GenerativeFill(request):
+   Original_image_url = request.data['image']
+   title_of_the_image = request.data['title']
+   requested_user_username = request.data['username']
+   Aspect_ratio_of_the_image = request.data['ratio']
+   requested_user = User.objects.get(username = requested_user_username)
+
+   Available_credits = Profile.objects.get(user = requested_user).credits
+   if Available_credits <= 2:
+       return Response({"status_code": 5002, "message": "Insufficient credits"})
+   else:
+       
+
+
+       uploaded_image = cloudinary.uploader.upload(Original_image_url)
+       public_id = uploaded_image['public_id']
+       final_iamge_url =CloudinaryImage(public_id).image(aspect_ratio=Aspect_ratio_of_the_image, gravity="center", background="gen_fill", crop="pad")
+
+       start_pos = final_iamge_url.find('src="') + len('src="')
+       end_pos = final_iamge_url.find('"', start_pos)
+       transformed_image_url = final_iamge_url[start_pos:end_pos]
+       Profile.objects.filter(user = requested_user).update(credits = Available_credits - 2)
+
+
+       Image.objects.create(
+            user = requested_user,
+            title = title_of_the_image,
+            image_file = Original_image_url,
+            processed_image = transformed_image_url, 
+            process_type = "Generative Fill"
+        )
+       
+       return Response({"status_code":5000,"message":"Generative fill applied","data":transformed_image_url})
+   
+@api_view(['POST'])
+def ItemRecolor(request):
+   Original_image_url = request.data['image']
+   title_of_the_image = request.data['title']
+   requested_user_username = request.data['username']
+   item_of_the_image_to_recolor = request.data['ItemRecolor']
+   color_to_be_used_there = request.data['color']
+   
+   clean_color = color_to_be_used_there[1:]
+   low_case_clean_color = clean_color.lower()
+   requested_user = User.objects.get(username = requested_user_username)
+   print(clean_color)
+   Available_credits = Profile.objects.get(user = requested_user).credits
+   if Available_credits <= 2:
+       return Response({"status_code": 5002, "message": "Insufficient credits"})
+   else:
+       
+
+
+       uploaded_image = cloudinary.uploader.upload(Original_image_url)
+       public_id = uploaded_image['public_id']
+       final_iamge_url =CloudinaryImage(public_id).image(effect=f"gen_recolor:prompt_{item_of_the_image_to_recolor};to-color_{clean_color};multiple_true")
+
+       start_pos = final_iamge_url.find('src="') + len('src="')
+       end_pos = final_iamge_url.find('"', start_pos)
+       transformed_image_url = final_iamge_url[start_pos:end_pos]
+       Profile.objects.filter(user = requested_user).update(credits = Available_credits - 2)
+
+
+       Image.objects.create(
+            user = requested_user,
+            title = title_of_the_image,
+            image_file = Original_image_url,
+            processed_image = transformed_image_url, 
+            process_type = "Generative Recolor"
+        )
+       
+       return Response({"status_code":5000,"message":"Generative Recolor applied","data":transformed_image_url})
+   
+
+   
+@api_view(['POST'])
+def GenerativeImageCrop(request):
+   Original_image_url = request.data['image']
+   title_of_the_image = request.data['title']
+   requested_user_username = request.data['username']
+   height_and_width_of_the_image = request.data['ratio']
+   height,width = height_and_width_of_the_image.split(":")
+   requested_user = User.objects.get(username = requested_user_username)
+   Available_credits = Profile.objects.get(user = requested_user).credits
+   if Available_credits <= 2:
+       return Response({"status_code": 5002, "message": "Insufficient credits"})
+   else:
+       
+
+
+       uploaded_image = cloudinary.uploader.upload(Original_image_url)
+       public_id = uploaded_image['public_id']
+       final_iamge_url = CloudinaryImage(public_id).image(gravity="auto", height=height, width=width, crop="fill")
+
+       start_pos = final_iamge_url.find('src="') + len('src="')
+       end_pos = final_iamge_url.find('"', start_pos)
+       transformed_image_url = final_iamge_url[start_pos:end_pos]
+       Profile.objects.filter(user = requested_user).update(credits = Available_credits - 2)
+
+
+       Image.objects.create(
+            user = requested_user,
+            title = title_of_the_image,
+            image_file = Original_image_url,
+            processed_image = transformed_image_url, 
+            process_type = "Content Aware Crop"
+        )
+       
+       return Response({"status_code":5000,"message":"croped image successfully","data":transformed_image_url})
+   
+
+   
+@api_view(['POST'])
+def OptimizeImage(request):
+   Original_image_url = request.data['image']
+   title_of_the_image = request.data['title']
+   requested_user_username = request.data['username']
+   width_of_the_image = request.data['ratio']
+   quality_of_the_image = request.data['quality']
+
+   if quality_of_the_image == "35":
+       quality_of_the_image = 35
+   elif quality_of_the_image == "auto":
+       quality_of_the_image = "auto"
+   else:
+       quality_of_the_image = "auto:best"
+
+   width_of_the_image_in_numer = int(width_of_the_image)
+   requested_user = User.objects.get(username = requested_user_username)
+   Available_credits = Profile.objects.get(user = requested_user).credits
+   if Available_credits <= 2:
+       return Response({"status_code": 5002, "message": "Insufficient credits"})
+   else:
+       
+
+
+       uploaded_image = cloudinary.uploader.upload(Original_image_url)
+       public_id = uploaded_image['public_id']
+       final_iamge_url = CloudinaryImage(public_id).image(transformation=[
+            {'width': width_of_the_image_in_numer, 'crop': "scale"},
+            {'quality': quality_of_the_image},
+            {'fetch_format': "auto"}
+        ])
+       start_pos = final_iamge_url.find('src="') + len('src="')
+       end_pos = final_iamge_url.find('"', start_pos)
+       transformed_image_url = final_iamge_url[start_pos:end_pos]
+       Profile.objects.filter(user = requested_user).update(credits = Available_credits - 2)
+
+
+       Image.objects.create(
+            user = requested_user,
+            title = title_of_the_image,
+            image_file = Original_image_url,
+            processed_image = transformed_image_url, 
+            process_type = "Image Optimization"
+        )
+       
+       return Response({"status_code":5000,"message":"Image optimized successfully","data":transformed_image_url})
+   
+@api_view(['POST'])
+def VideoOptimizer(request):
+   Original_video_url = request.data['video']
+   title_of_the_video = request.data['title']
+   width_of_the_video = request.data['ratio']
+   quality_of_the_video = request.data['quality']  
+   width_of_the_video_number = int(width_of_the_video)
+   requested_user_username = request.data['username']
+   requested_user = User.objects.get(username = requested_user_username)
+
+
+   if quality_of_the_video == "35":
+       quality_of_the_video = 35
+   elif quality_of_the_video == "auto":
+       quality_of_the_video = "auto"
+   else:
+       quality_of_the_video = "auto:best"
+
+   Available_credits = Profile.objects.get(user = requested_user).credits
+   if Available_credits <= 4:
+       return Response({"status_code": 5002, "message": "Insufficient credits"})
+   else:
+
+
+       uploaded_video = cloudinary.uploader.upload(Original_video_url, resource_type="video")
+       public_id = uploaded_video['public_id']
+       final_video_url = CloudinaryVideo(public_id).video(transformation=[
+           {'width': width_of_the_video_number, 'crop': "scale"},
+           {'quality': quality_of_the_video},
+           {'fetch_format': "auto"}
+       ])
+
+       print(final_video_url)
+
+       soup = BeautifulSoup(final_video_url, 'html.parser')
+       sources = soup.find_all('source')
+       second_src_url = sources[1]['src']
+       print(second_src_url)
+       Profile.objects.filter(user = requested_user).update(credits = Available_credits - 4)
+       
+
+
+       Video.objects.create(
+            user = requested_user,
+            title = title_of_the_video,
+            video_file = Original_video_url,
+            transformed_video_file = second_src_url, 
+            process_type = "Video Optimizer"
+        )
+       
+       return Response({"status_code":5000,"message":"Video Optimized Successfully","data":second_src_url})
+   
+
+
+@api_view(['POST'])
+def GenerateImage(request):
+   title_of_the_image = request.data['title']
+   requested_user_username = request.data['username']
+   prompt_of_the_image = request.data['prompt']
+   requested_user = User.objects.get(username = requested_user_username)
+
+   Available_credits = Profile.objects.get(user = requested_user).credits
+   if Available_credits <= 6:
+       return Response({"status_code": 5002, "message": "Insufficient credits"})
+   else:
+        client = OpenAI(
+            base_url="https://api.studio.nebius.com/v1/",
+            api_key=os.getenv("NEBIUS_API_KEY")
+        )
+        response = client.images.generate(
+            model="black-forest-labs/flux-dev",
+            response_format="url",
+            extra_body={
+                "response_extension": "png",
+                "width": 1024,
+                "height": 1024,
+                "num_inference_steps": 28,
+                "negative_prompt": "",
+                "seed": -1
+            },
+            prompt=prompt_of_the_image
+        )
+        print(response.data[0].url)
+       
+        Profile.objects.filter(user = requested_user).update(credits = Available_credits - 6)
+        Image.objects.create(
+            user = requested_user,
+            title = title_of_the_image,
+            image_file = 'https://th.bing.com/th/id/OIP.kf23wlD2Crw8b424CqnfhAHaDq?w=349&h=172&c=7&r=0&o=7&cb=iwp2&dpr=1.3&pid=1.7&rm=3',
+            processed_image = response.data[0].url, 
+            process_type = "Image Generation"
+        )
+       
+        return Response({"status_code":5000,"message":"Generated Image","data":response.data[0].url})

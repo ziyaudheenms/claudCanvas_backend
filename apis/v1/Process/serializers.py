@@ -35,6 +35,7 @@ class ViewMyVideoSinglePageSerializer(serializers.ModelSerializer):
 class ViewUserProfileSerializer(serializers.ModelSerializer):
     user = serializers.SerializerMethodField()
     images_manipulated = serializers.SerializerMethodField()
+    video_manipulated = serializers.SerializerMethodField()
     class Meta:
         model = Profile
         fields = "__all__"
@@ -45,10 +46,11 @@ class ViewUserProfileSerializer(serializers.ModelSerializer):
         requested_user = instance.user
         images_manipulated = Image.objects.filter(user = requested_user).count()
         return images_manipulated
-    # def get_video_manipulated(self,instance):
-    #     requested_user = instance.user
-    #     video_manipulated = Image.objects.filter(user = requested_user).count()
-    #     return video_manipulated
+    def get_video_manipulated(self,instance):
+        requested_user = instance.user
+        video_manipulated = Video.objects.filter(user = requested_user).count()
+        return video_manipulated
+
 
 
 class UserViewMyVideosSerializer(serializers.ModelSerializer):
