@@ -25,7 +25,7 @@ urlpatterns = [
    path('webhooks/stripe/', stripe_webhook),
    path('Process/Image/ContentAwareCrop/', views.ContentAwareCrop),
    path('Process/Image/GenerateImage/', views.GenerateImage),
-   path('Process/Image/delete/', views.DeleteImage),
-   path('Process/Video/delete/', views.DeleteVideo),
+   path('Process/Image/delete/<int:pk>/', views.DeleteImage),
+   path('Process/Video/delete/<int:pk>/', views.DeleteVideo),
 
 ]
