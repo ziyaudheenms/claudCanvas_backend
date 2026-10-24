@@ -110,3 +110,19 @@ At the core of CLAUDCANVAS is the robust **Cloudinary AI Toolkit**. Instead of d
    ```bash
    git clone [https://github.com/yourusername/claudcanvas.git](https://github.com/yourusername/claudcanvas.git)
    cd claudcanvas
+
+2. **Frontend**
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   cd claudcanvas
+
+2. **Backend**
+   ```bash
+   cd backend
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   pip install -r requirements.txt
+   python manage.py migrate
+   python manage.py runserver
